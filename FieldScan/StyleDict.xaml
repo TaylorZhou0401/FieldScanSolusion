@@ -1,0 +1,39 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="FieldScan.StyleDict"
+    >
+    <!--<Style TargetType="TabItem">
+        <Setter Property="stl:AdornerBehavior.WrapWithAdornerDecorator" Value="True"></Setter>
+    </Style>-->
+    <!--Text-->
+    <DataTemplate x:Key="nameBindingText">
+        <TextBlock VerticalAlignment="Center" Text="{Binding Name}"/>
+    </DataTemplate>
+    
+    <!--TextBox-->
+    <Style x:Key="TextBoxEnterKey" TargetType="TextBox" >
+        <Setter Property="Cursor" Value="Arrow"/>
+        <EventSetter Event="KeyUp" Handler="Enter_KeyUp"/>
+    </Style>
+    <Style x:Key="TextBoxEnterKeyNoInputMethod" >
+        <Setter Property="InputMethod.IsInputMethodEnabled" Value="False"/>
+    </Style>
+    <Style x:Key="NumOnlyTextBoxEnterKey" TargetType="TextBox" >
+        <Setter Property="InputMethod.IsInputMethodEnabled" Value="False"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <EventSetter Event="PreviewMouseWheel" Handler="TextBox_PreviewMouseWheel"/>
+        <EventSetter Event="PreviewTextInput" Handler="tb_PreviewTextInput"/>
+        <EventSetter Event="KeyUp" Handler="TextBoxKeyUp"/>
+        <EventSetter Event="LostFocus" Handler="tb_LostFocus"/>
+    </Style>
+    <Style x:Key="NumOnlyNormalTextBoxEnterKey" TargetType="TextBox" >
+        <Setter Property="InputMethod.IsInputMethodEnabled" Value="False"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+        <EventSetter Event="PreviewMouseWheel" Handler="TextBox_PreviewMouseWheel"/>
+        <EventSetter Event="PreviewTextInput" Handler="tb_PreviewTextInputNormal"/>
+        <EventSetter Event="KeyUp" Handler="TextBoxKeyUp"/>
+        <EventSetter Event="LostFocus" Handler="tb_LostFocus"/>
+    </Style>
+
+</ResourceDictionary>
