@@ -40,6 +40,8 @@ namespace FieldScan
             cmbSpanUnit.SelectedItem = Settings.SpanUnit;
             double spanMultiplier = unitMultipliers[Settings.SpanUnit];
             txtSpan.Text = (Settings.SpanHz / spanMultiplier).ToString("G");
+
+            txtRefLevel.Text = Settings.ReferenceLevelDb.ToString();
         }
 
         private void ConfirmButton_Click(object sender, RoutedEventArgs e)
@@ -62,7 +64,9 @@ namespace FieldScan
                 double spanValue = double.Parse(txtSpan.Text);
                 Settings.SpanUnit = spanUnit;
                 Settings.SpanHz = spanValue * unitMultipliers[spanUnit];
-                // --------------------------
+                // -------------------------- 
+
+                Settings.ReferenceLevelDb = double.Parse(txtRefLevel.Text);//参考电平
 
                 this.DialogResult = true;
                 this.Close();

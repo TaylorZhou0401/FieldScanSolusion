@@ -21,6 +21,7 @@ using OxyPlot.Legends;
 using System.Threading;
 using System.IO;
 using Microsoft.Win32;
+using System.IO; 
 
 namespace FieldScan
 {
@@ -40,6 +41,7 @@ namespace FieldScan
         #region 属性
         private int scnaDelayMs = 1000;
         public int ScnaDelayMs
+
         {
             get { return scnaDelayMs; }
             set { SetProperty(ref scnaDelayMs, value); }
@@ -129,6 +131,21 @@ namespace FieldScan
             get { return _NumY; }
             set { SetProperty(ref _NumY, value); }
         }
+        private bool isFrontSide = true; // 默认为正面
+        public bool IsFrontSide
+        {
+            get { return isFrontSide; }
+            set { SetProperty(ref isFrontSide, value); }
+        }
+        public List<string> LayerOptions { get; set; } = new List<string> { "L1", "L2", "L3", "L4" };
+
+        private string selectedLayer = "L1"; // 默认选中 L1
+        public string SelectedLayer
+        {
+            get { return selectedLayer; }
+            set { SetProperty(ref selectedLayer, value); }
+        }
+
         #endregion
         #region Plot
         private double[,] recPowers;
@@ -378,6 +395,8 @@ namespace FieldScan
                 sa.SetSweepPoints(saSettings.Points);
                 // --------------------------
 
+                sa.SetReferenceLevel(saSettings.ReferenceLevelDb);
+
                 StringBuilder sb = new StringBuilder(4096);
                 CreateNewDataFile();
                 WriteDataFile($"Height:{Tz},R:{Tc}");
@@ -457,12 +476,51 @@ namespace FieldScan
         string pathAllData;
         private void CreateNewDataFile()
         {
-            string dir = $"{Environment.CurrentDirectory}\\Data";
-            path = dir + $"\\Data_{DateTime.Now.Day}_{DateTime.Now.Hour}_{DateTime.Now.Minute}_{DateTime.Now.Second}.csv";
-            pathAllData = dir + $"\\Data_{DateTime.Now.Day}_{DateTime.Now.Hour}_{DateTime.Now.Minute}_{DateTime.Now.Second}_All.csv";
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            StreamWriter sw = new StreamWriter(path, false);
+            // 1. 获取所有需要加入文件名的部分
+            string sideName = IsFrontSide ? "正面" : "反面";
+            string layerName = SelectedLayer; // 获取下拉条选择的值
+            string angleString = $"{Tc:F1}deg";
 
+            // 2. 将中心频率从Hz转换为带单位的易读格式
+            string freqString;
+            double centerFreq = saSettings.CenterFrequencyHz;
+            if (centerFreq >= 1e9)
+            {
+                freqString = (centerFreq / 1e9).ToString("G3") + "GHz";
+            }
+            else if (centerFreq >= 1e6)
+            {
+                freqString = (centerFreq / 1e6).ToString("G3") + "MHz";
+            }
+            else if (centerFreq >= 1e3)
+            {
+                freqString = (centerFreq / 1e3).ToString("G3") + "KHz";
+            }
+            else
+            {
+                freqString = centerFreq.ToString("G3") + "Hz";
+            }
+
+            // 3. 构建包含所有信息的新文件名
+            string baseFileName = $"{sideName}_{layerName}_{freqString}_{angleString}";
+
+            // 4. 检查文件是否已存在，如果存在则在后面加上(1), (2)...
+            string dir = $"{Environment.CurrentDirectory}\\Data";
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+            string finalFileName = baseFileName;
+            int counter = 1;
+            while (System.IO.File.Exists(System.IO.Path.Combine(dir, finalFileName + ".csv")))
+            {
+                finalFileName = $"{baseFileName}({counter})";
+                counter++;
+            }
+
+            path = System.IO.Path.Combine(dir, finalFileName + ".csv");
+            pathAllData = System.IO.Path.Combine(dir, finalFileName + "_All.csv");
+
+            // 创建空文件
+            StreamWriter sw = new StreamWriter(path, false);
             sw.Close();
             sw.Dispose();
             StreamWriter sw2 = new StreamWriter(pathAllData, false);

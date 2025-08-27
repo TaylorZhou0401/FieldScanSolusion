@@ -17,5 +17,6 @@ namespace FieldScan
         // --- 新增下面两个属性来保存单位 ---
         public string CenterFrequencyUnit { get; set; } = "GHz";
         public string SpanUnit { get; set; } = "MHz";
+        public double ReferenceLevelDb { get; set; } = 0; // 默认参考电平为 0 dB
     }
 }

@@ -45,6 +45,31 @@
             </Style.Triggers>
         </Style>
         <Style TargetType="TextBox" BasedOn="{StaticResource NumOnlyTextBoxEnterKey}"/>
+        
+        <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid>
+                            <Border x:Name="BackgroundBorder" CornerRadius="15" Background="LightGray"/>
+                            <Ellipse x:Name="Thumb" Fill="White" Width="26" Height="26" HorizontalAlignment="Left" Margin="2"/>
+                            <TextBlock x:Name="Text" Text="反面" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" Foreground="White" FontSize="12"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="DodgerBlue"/>
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="Text" Property="Text" Value="正面"/>
+                                <Setter TargetName="Text" Property="HorizontalAlignment" Value="Left"/>
+                                <Setter TargetName="Text" Property="Margin" Value="8,0,0,0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border BorderBrush="#CCCCCC" BorderThickness="1" Background="White">
@@ -149,8 +174,20 @@
                                 <TextBox Text="{Binding NumY}"/>
                             </HeaderedContentControl>
                         </UniformGrid>
+
+                        <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+                            <TextBlock Text="标号选择:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <ComboBox ItemsSource="{Binding LayerOptions}" SelectedItem="{Binding SelectedLayer}" Width="100"/>
+                        </StackPanel>
+
                         <Button Content="扫描" Click="Button_Click_Scan" Margin="5"/>
                         <Button Content="停止" Click="Button_Click_ScanStop" Margin="5"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
+                            <TextBlock Text="扫描面: " VerticalAlignment="Center"/>
+                            <CheckBox IsChecked="{Binding IsFrontSide, Mode=TwoWay}" Style="{StaticResource ToggleSwitchStyle}"/>
+                        </StackPanel>
+
                         <TextBlock Text="{Binding IsNScan}"/>
                         <Separator/>
                         <HeaderedContentControl Header="扫描时间（ms）" Margin="5">

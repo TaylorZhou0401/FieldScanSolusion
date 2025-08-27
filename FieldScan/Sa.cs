@@ -117,5 +117,12 @@ namespace FieldScan
                 throw new Exception($"频谱仪查询 '{cmd}' 失败: {ex.Message}");
             }
         }
+
+        // 新增方法：设置参考电平
+        public void SetReferenceLevel(double levelDb)
+        {
+            // SCPI指令: DISPlay:WINDow:TRACe:Y:RLEVel <level>
+            WriteLine($":DISP:WIND:TRAC:Y:RLEV {levelDb}");
+        }
     }
 }
