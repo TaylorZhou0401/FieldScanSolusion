@@ -39,13 +39,6 @@ namespace FieldScan
             this.InitPlot();
         }
         #region 属性
-        private int scnaDelayMs = 1000;
-        public int ScnaDelayMs
-
-        {
-            get { return scnaDelayMs; }
-            set { SetProperty(ref scnaDelayMs, value); }
-        }
 
         private float _Cx;
         public float Cx
@@ -131,12 +124,7 @@ namespace FieldScan
             get { return _NumY; }
             set { SetProperty(ref _NumY, value); }
         }
-        private bool isFrontSide = true; // 默认为正面
-        public bool IsFrontSide
-        {
-            get { return isFrontSide; }
-            set { SetProperty(ref isFrontSide, value); }
-        }
+        
         public List<string> LayerOptions { get; set; } = new List<string> { "L1", "L2", "L3", "L4" };
 
         private string selectedLayer = "L1"; // 默认选中 L1
@@ -395,6 +383,12 @@ namespace FieldScan
                 sa.SetSweepPoints(saSettings.Points);
                 // --------------------------
 
+                // 1. 自动获取扫描时间
+                double baseSweepTimeMs = sa.GetSweepTimeMillis();
+                // 2. 计算动态冗余时间 (例如，基础时间的20% + 50ms的固定通信延迟)
+                int autoScanDelayMs = (int)Math.Ceiling(baseSweepTimeMs * 1.2 + 50);
+                // --------------------------
+
                 sa.SetReferenceLevel(saSettings.ReferenceLevelDb);
 
                 StringBuilder sb = new StringBuilder(4096);
@@ -430,8 +424,10 @@ namespace FieldScan
                         if (isNScan || !isConnected) return;
                         scanClass.Go(xArray[idxX], yArray[idxY], Tz, Tc, speed);
                         if (isNScan || !isConnected) return;
-                        recPowers[idxX, idxY] = sa.ReNewMaxHoldAndRead(ScnaDelayMs);
-                        //plotShowMatrix[idxX, idxY] = recPowers[idxX, idxY];
+
+                        // --- 3. 使用自动计算出的、带动态冗余的扫描时间 ---
+                        recPowers[idxX, idxY] = sa.ReNewMaxHoldAndRead(autoScanDelayMs);
+
                         if (isNScan || !isConnected) return;
                         WriteAllDataFile($"{xArray[idxX].ToString("F3")},{yArray[idxY].ToString("F3")}," + sa.ReadTrace());
                         if (isNScan || !isConnected) return;
@@ -476,9 +472,8 @@ namespace FieldScan
         string pathAllData;
         private void CreateNewDataFile()
         {
-            // 1. 获取所有需要加入文件名的部分
-            string sideName = IsFrontSide ? "正面" : "反面";
-            string layerName = SelectedLayer; // 获取下拉条选择的值
+            // 1. 获取所有需要加入文件名的部分 (已移除 sideName)
+            string layerName = SelectedLayer;
             string angleString = $"{Tc:F1}deg";
 
             // 2. 将中心频率从Hz转换为带单位的易读格式
@@ -501,10 +496,10 @@ namespace FieldScan
                 freqString = centerFreq.ToString("G3") + "Hz";
             }
 
-            // 3. 构建包含所有信息的新文件名
-            string baseFileName = $"{sideName}_{layerName}_{freqString}_{angleString}";
+            // 3. 构建新的文件名 (已移除 sideName)
+            string baseFileName = $"{layerName}_{freqString}_{angleString}";
 
-            // 4. 检查文件是否已存在，如果存在则在后面加上(1), (2)...
+            // 4. 检查文件是否已存在... (后续逻辑不变)
             string dir = $"{Environment.CurrentDirectory}\\Data";
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
@@ -527,6 +522,7 @@ namespace FieldScan
             sw2.Close();
             sw2.Dispose();
         }
+
         private void WriteDataFile(string s)
         {
             StreamWriter sw = new StreamWriter(path, true);

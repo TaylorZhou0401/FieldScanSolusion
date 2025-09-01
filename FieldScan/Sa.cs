@@ -124,5 +124,18 @@ namespace FieldScan
             // SCPI指令: DISPlay:WINDow:TRACe:Y:RLEVel <level>
             WriteLine($":DISP:WIND:TRAC:Y:RLEV {levelDb}");
         }
+
+        // 新增方法：查询扫描时间
+        public double GetSweepTimeMillis()
+        {
+            // SCPI指令: :SWEep:TIME?
+            // 这个指令通常返回单位为秒(s)的扫描时间
+            // 注意：QueryString返回的字符串末尾可能有换行符，需要Trim处理
+            string sweepTimeString = QueryString(":SWE:TIME?").Trim();
+            double sweepTimeSeconds = double.Parse(sweepTimeString);
+
+            // 将秒转换为毫秒并返回
+            return sweepTimeSeconds * 1000;
+        }
     }
 }
