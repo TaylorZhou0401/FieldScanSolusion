@@ -21,7 +21,9 @@ using OxyPlot.Legends;
 using System.Threading;
 using System.IO;
 using Microsoft.Win32;
-using System.IO; 
+using System.IO;
+using System.Collections.ObjectModel; // 需要添加
+using System.Xml.Serialization; // 需要添加
 
 namespace FieldScan
 {
@@ -32,10 +34,19 @@ namespace FieldScan
     {
         // ... 其他属性
         private InstrumentSettings saSettings = new InstrumentSettings();
+        public ObservableCollection<Probe> Probes { get; set; } = new ObservableCollection<Probe>();
+        private Probe activeProbe;
+        public Probe ActiveProbe
+        {
+            get { return activeProbe; }
+            set { SetProperty(ref activeProbe, value); }
+        }
+        private string probeLibraryFilePath = "ProbeLibrary.xml";
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
+            LoadProbeLibrary(); // <-- 添加这行
             this.InitPlot();
         }
         #region 属性
@@ -123,15 +134,6 @@ namespace FieldScan
         {
             get { return _NumY; }
             set { SetProperty(ref _NumY, value); }
-        }
-        
-        public List<string> LayerOptions { get; set; } = new List<string> { "L1", "L2", "L3", "L4" };
-
-        private string selectedLayer = "L1"; // 默认选中 L1
-        public string SelectedLayer
-        {
-            get { return selectedLayer; }
-            set { SetProperty(ref selectedLayer, value); }
         }
 
         #endregion
@@ -373,7 +375,6 @@ namespace FieldScan
             {
                 SetBitMapMode(false);
 
-                // --- 这是修改过的部分 ---
                 // 1. 使用新设置进行连接
                 sa.Connect(saSettings.IpAddress, saSettings.Port);
 
@@ -381,15 +382,17 @@ namespace FieldScan
                 sa.SetCenterFrequency(saSettings.CenterFrequencyHz);
                 sa.SetSpan(saSettings.SpanHz);
                 sa.SetSweepPoints(saSettings.Points);
+
+                // 3. 设置参考电压
+                sa.SetReferenceLevel(saSettings.ReferenceLevelDb);
                 // --------------------------
 
                 // 1. 自动获取扫描时间
                 double baseSweepTimeMs = sa.GetSweepTimeMillis();
-                // 2. 计算动态冗余时间 (例如，基础时间的20% + 50ms的固定通信延迟)
-                int autoScanDelayMs = (int)Math.Ceiling(baseSweepTimeMs * 1.2 + 50);
+                // 2. 计算动态冗余时间 (例如，基础时间的50% + 100ms的固定通信延迟)
+                int autoScanDelayMs = (int)Math.Ceiling(baseSweepTimeMs * 1.5 + 100);
                 // --------------------------
 
-                sa.SetReferenceLevel(saSettings.ReferenceLevelDb);
 
                 StringBuilder sb = new StringBuilder(4096);
                 CreateNewDataFile();
@@ -401,8 +404,24 @@ namespace FieldScan
                     sb.Append(xArray[i].ToString("F3") + ",");
                 }
                 WriteDataFile(sb.ToString());
-                WriteAllDataFile("X(mm),Y(mm)");
+                List<string> frequencyHeaders = new List<string>();
+                double startFreq = saSettings.CenterFrequencyHz - (saSettings.SpanHz / 2);
+                double stepFreq = saSettings.SpanHz / (saSettings.Points - 1);
+                for (int i = 0; i < saSettings.Points; i++)
+                {
+                    double currentFreq = startFreq + (i * stepFreq);
+                    string freqString;
+                    if (currentFreq >= 1e9) freqString = (currentFreq / 1e9).ToString("F3") + "GHz";
+                    else if (currentFreq >= 1e6) freqString = (currentFreq / 1e6).ToString("F3") + "MHz";
+                    else if (currentFreq >= 1e3) freqString = (currentFreq / 1e3).ToString("F3") + "KHz";
+                    else freqString = currentFreq.ToString("F3") + "Hz";
+                    frequencyHeaders.Add(freqString);
+                }
+                WriteAllDataFile($"X(mm),Y(mm),{string.Join(",", frequencyHeaders)}");
 
+                // 创建一个新的校准数据文件
+                string correctedDataPath = pathAllData.Replace("_All.csv", "_Corrected_All.csv");
+                WriteCorrectedDataFile(correctedDataPath, $"X(mm),Y(mm) (Corrected dBuV/m),{string.Join(",", frequencyHeaders)}");
                 //isNScan = false;
                 //Scan
                 for (int idxY = 0; idxY < NumY; idxY++)
@@ -425,15 +444,34 @@ namespace FieldScan
                         scanClass.Go(xArray[idxX], yArray[idxY], Tz, Tc, speed);
                         if (isNScan || !isConnected) return;
 
-                        // --- 3. 使用自动计算出的、带动态冗余的扫描时间 ---
-                        recPowers[idxX, idxY] = sa.ReNewMaxHoldAndRead(autoScanDelayMs);
+                        // --- 这里是关键修改 ---
+                        // 1. 读取功率值和原始踪迹数据，并分别存入变量
+                        recPowers[idxX, idxY] = sa.ReNewMaxHoldAndRead(autoScanDelayMs); // autoScanDelayMs 来自自动扫描时间的功能
+                        string rawTrace = sa.ReadTrace(); // 将踪迹数据存入 rawTrace 变量
 
                         if (isNScan || !isConnected) return;
-                        WriteAllDataFile($"{xArray[idxX].ToString("F3")},{yArray[idxY].ToString("F3")}," + sa.ReadTrace());
+
+                        // 2. 使用 rawTrace 变量写入原始数据文件
+                        WriteAllDataFile($"{xArray[idxX].ToString("F3")},{yArray[idxY].ToString("F3")}," + rawTrace);
+
+                        // 3. 使用 rawTrace 变量进行探头校准计算
+                        var powerValues = rawTrace.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => double.Parse(p.Trim())).ToList();
+                        var correctedValues = new List<string>();
+                        for (int j = 0; j < Math.Min(powerValues.Count, saSettings.Points); j++)
+                        {
+                            double freq = startFreq + j * stepFreq;
+                            double powerDbm = powerValues[j];
+                            double powerDbuV = powerDbm + 107; // 转换为 dBuV (50欧姆系统)
+                            double antennaFactor = ActiveProbe.GetFactorAtFrequency(freq);
+                            double correctedFieldStrength = powerDbuV + antennaFactor; // 单位 dBuV/m
+                            correctedValues.Add(correctedFieldStrength.ToString("F2"));
+                        }
+                        WriteCorrectedDataFile(correctedDataPath, $"{xArray[idxX].ToString("F3")},{yArray[idxY].ToString("F3")}," + string.Join(",", correctedValues));
+                        // --- 修改结束 ---
+
                         if (isNScan || !isConnected) return;
                         if (isFwd) idxX++;
                         else idxX--;
-
                     }
 
                     //存  单x行
@@ -472,8 +510,7 @@ namespace FieldScan
         string pathAllData;
         private void CreateNewDataFile()
         {
-            // 1. 获取所有需要加入文件名的部分 (已移除 sideName)
-            string layerName = SelectedLayer;
+            // 1. 获取所有需要加入文件名的部分 (已移除 sideName 和 layerName)
             string angleString = $"{Tc:F1}deg";
 
             // 2. 将中心频率从Hz转换为带单位的易读格式
@@ -496,8 +533,8 @@ namespace FieldScan
                 freqString = centerFreq.ToString("G3") + "Hz";
             }
 
-            // 3. 构建新的文件名 (已移除 sideName)
-            string baseFileName = $"{layerName}_{freqString}_{angleString}";
+            // 3. 构建新的文件名 (已移除 sideName 和 layerName)
+            string baseFileName = $"{freqString}_{angleString}";
 
             // 4. 检查文件是否已存在... (后续逻辑不变)
             string dir = $"{Environment.CurrentDirectory}\\Data";
@@ -657,6 +694,54 @@ namespace FieldScan
                 saSettings = configWindow.Settings;
                 MessageBox.Show("仪器参数已更新！将在下次扫描时生效。", "提示");
             }
+        }
+        private void ProbeLibrary_Click(object sender, RoutedEventArgs e)
+        {
+            ProbeManagementWindow probeWindow = new ProbeManagementWindow(Probes);
+            probeWindow.ShowDialog();
+            SaveProbeLibrary(); // 关闭管理窗口后，自动保存更改
+        }
+
+        private void LoadProbeLibrary()
+        {
+            if (File.Exists(probeLibraryFilePath))
+            {
+                try
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Probe>));
+                    using (var reader = new StreamReader(probeLibraryFilePath))
+                    {
+                        Probes = (ObservableCollection<Probe>)serializer.Deserialize(reader);
+                    }
+                }
+                catch (Exception ex) { MessageBox.Show("加载探头库文件失败: " + ex.Message); }
+            }
+            if (Probes == null || Probes.Count == 0)
+            {
+                Probes = new ObservableCollection<Probe>();
+                Probes.Add(new Probe { Name = "默认探头 (无校准)" });
+            }
+            ActiveProbe = Probes[0];
+        }
+
+        private void SaveProbeLibrary()
+        {
+            try
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Probe>));
+                using (var writer = new StreamWriter(probeLibraryFilePath))
+                {
+                    serializer.Serialize(writer, Probes);
+                }
+            }
+            catch (Exception ex) { MessageBox.Show("保存探头库文件失败: " + ex.Message); }
+        }
+        private void WriteCorrectedDataFile(string filePath, string s)
+        {
+            StreamWriter sw = new StreamWriter(filePath, true);
+            sw.WriteLine(s);
+            sw.Close();
+            sw.Dispose();
         }
 
     } // 这是 MainWindow 类的结束括号

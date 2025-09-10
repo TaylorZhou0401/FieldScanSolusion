@@ -121,10 +121,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AntennaFactorPoint.cs" />
     <Compile Include="InstrumentConfigWindow.xaml.cs">
       <DependentUpon>InstrumentConfigWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="InstrumentSettings.cs" />
+    <Compile Include="Probe.cs" />
+    <Compile Include="ProbeManagementWindow.xaml.cs">
+      <DependentUpon>ProbeManagementWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="RobotControlWindow.xaml.cs">
       <DependentUpon>RobotControlWindow.xaml</DependentUpon>
     </Compile>
@@ -149,6 +154,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="ProbeManagementWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="RobotControlWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
