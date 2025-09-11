@@ -122,6 +122,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AntennaFactorPoint.cs" />
+    <Compile Include="CalibrationWindow.xaml.cs">
+      <DependentUpon>CalibrationWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="InstrumentConfigWindow.xaml.cs">
       <DependentUpon>InstrumentConfigWindow.xaml</DependentUpon>
     </Compile>
@@ -138,6 +141,10 @@
     <Compile Include="StyleDict.xaml.cs">
       <DependentUpon>StyleDict.xaml</DependentUpon>
     </Compile>
+    <Page Include="CalibrationWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="InstrumentConfigWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

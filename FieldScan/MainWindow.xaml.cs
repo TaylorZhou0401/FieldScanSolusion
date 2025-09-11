@@ -743,6 +743,17 @@ namespace FieldScan
             sw.Close();
             sw.Dispose();
         }
+        private void CameraCalibrate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsConnected)
+            {
+                MessageBox.Show("请先连接机械臂！");
+                return;
+            }
+            // 打开校准窗口，并将机械臂控制器和主窗口自身传递过去
+            CalibrationWindow calibWindow = new CalibrationWindow(this.scanClass, this);
+            calibWindow.ShowDialog();
+        }
 
     } // 这是 MainWindow 类的结束括号
 }

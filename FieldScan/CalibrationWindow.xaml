@@ -1,0 +1,78 @@
+﻿<Window x:Class="FieldScan.CalibrationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="视觉引导校准" Height="700" Width="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="250"/>
+        </Grid.ColumnDefinitions>
+
+        <Border BorderBrush="Gray" BorderThickness="1" Margin="10">
+            <Grid>
+                <Image x:Name="BackgroundImage" Stretch="Uniform" />
+                <Canvas x:Name="SelectionCanvas" Background="Transparent"
+                        MouseLeftButtonDown="SelectionCanvas_MouseLeftButtonDown"
+                        MouseMove="SelectionCanvas_MouseMove"
+                        MouseLeftButtonUp="SelectionCanvas_MouseLeftButtonUp"/>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Column="1" Margin="10">
+            <Button Content="1. 加载待测件照片..." Click="LoadImage_Click" Margin="5"/>
+            <TextBlock Text="2. 在左侧图片上框选扫描区域" Margin="5" TextWrapping="Wrap"/>
+
+            <GroupBox Header="3. 移动机械臂到对应点并记录" Margin="5" Padding="5">
+                <StackPanel>
+                    <Border x:Name="BorderP1" BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="2">
+                        <StackPanel>
+                            <TextBlock Text="第一点 (左上角)" FontWeight="Bold"/>
+                            <TextBlock x:Name="StatusP1" Text="待记录..." Foreground="Red"/>
+                            <Button x:Name="BtnRecordP1" Content="记录当前位置" Margin="0,5,0,0" IsEnabled="False" Click="RecordPoint_Click" Tag="1"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="BorderP2" BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="2">
+                        <StackPanel>
+                            <TextBlock Text="第二点 (右上角)" FontWeight="Bold"/>
+                            <TextBlock x:Name="StatusP2" Text="待记录..." Foreground="Red"/>
+                            <Button x:Name="BtnRecordP2" Content="记录当前位置" Margin="0,5,0,0" IsEnabled="False" Click="RecordPoint_Click" Tag="2"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="BorderP3" BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="2">
+                        <StackPanel>
+                            <TextBlock Text="第三点 (右下角)" FontWeight="Bold"/>
+                            <TextBlock x:Name="StatusP3" Text="待记录..." Foreground="Red"/>
+                            <Button x:Name="BtnRecordP3" Content="记录当前位置" Margin="0,5,0,0" IsEnabled="False" Click="RecordPoint_Click" Tag="3"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="BorderP4" BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="2">
+                        <StackPanel>
+                            <TextBlock Text="第四点 (左下角)" FontWeight="Bold"/>
+                            <TextBlock x:Name="StatusP4" Text="待记录..." Foreground="Red"/>
+                            <Button x:Name="BtnRecordP4" Content="记录当前位置" Margin="0,5,0,0" IsEnabled="False" Click="RecordPoint_Click" Tag="4"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="手动控制" Margin="5" Padding="5">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="步长(mm):" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="txtStep" Text="1.0" Width="50" TextAlignment="Center"/>
+                    </StackPanel>
+                    <UniformGrid Columns="2" Margin="0,5,0,0">
+                        <Button Content="X+" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="X+"/>
+                        <Button Content="X-" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="X-"/>
+                        <Button Content="Y+" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="Y+"/>
+                        <Button Content="Y-" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="Y-"/>
+                        <Button Content="Z+" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="Z+"/>
+                        <Button Content="Z-" Margin="2" PreviewMouseDown="StepButton_PreviewMouseDown" PreviewMouseUp="StepButton_PreviewMouseUp" Tag="Z-"/>
+                    </UniformGrid>
+                </StackPanel>
+            </GroupBox>
+
+            <Button Content="4. 应用校准并设置扫描范围" Margin="5,10,5,5" x:Name="BtnApply" IsEnabled="False" Click="ApplyCalibration_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
