@@ -26,6 +26,8 @@ namespace FieldScan
         private float _speed = 30;
         private DispatcherTimer _moveTimer;
         private string _currentMoveDirection = "";
+
+        public BitmapImage DutImage { get; private set; }
         // ---------------------------------------------------
 
         public CalibrationWindow(ScanClass scanClass, MainWindow mainWindow)
@@ -47,10 +49,15 @@ namespace FieldScan
         #region 框选逻辑
         private void LoadImage_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog { Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp|所有文件|*.*" };
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp|所有文件|*.*"
+            };
             if (ofd.ShowDialog() == true)
             {
-                BackgroundImage.Source = new BitmapImage(new Uri(ofd.FileName));
+                // 将加载的图片同时赋值给公共属性和界面控件
+                DutImage = new BitmapImage(new Uri(ofd.FileName));
+                BackgroundImage.Source = DutImage;
             }
         }
         private void SelectionCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -192,6 +199,7 @@ namespace FieldScan
             _mainWindow.TstopX = Math.Max(robotPoints[1].X, robotPoints[2].X);
             _mainWindow.TstopY = Math.Max(robotPoints[2].Y, robotPoints[3].Y);
             MessageBox.Show("校准成功！扫描范围已自动更新到主界面。");
+            this.DialogResult = true;
             this.Close();
         }
     }

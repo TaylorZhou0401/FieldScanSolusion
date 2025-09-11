@@ -117,6 +117,9 @@
                 </Grid.ColumnDefinitions>
 
                 <Grid>
+                    <Border BorderBrush="Gray" BorderThickness="1">
+                        <Image x:Name="DutImageView" Source="{Binding DutImageSource}" Stretch="Uniform" />
+                    </Border>
                     <oxy:PlotView x:Name="plot1" IsMouseWheelEnabled="False"/>
                 </Grid>
 

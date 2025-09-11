@@ -135,6 +135,13 @@ namespace FieldScan
             get { return _NumY; }
             set { SetProperty(ref _NumY, value); }
         }
+        
+        private ImageSource dutImageSource;
+        public ImageSource DutImageSource
+        {
+            get { return dutImageSource; }
+            set { SetProperty(ref dutImageSource, value); }
+        }
 
         #endregion
         #region Plot
@@ -750,9 +757,20 @@ namespace FieldScan
                 MessageBox.Show("请先连接机械臂！");
                 return;
             }
-            // 打开校准窗口，并将机械臂控制器和主窗口自身传递过去
+
             CalibrationWindow calibWindow = new CalibrationWindow(this.scanClass, this);
-            calibWindow.ShowDialog();
+
+            // 使用 ShowDialog() 来等待校准窗口关闭
+            // 并检查它的返回结果是否为 "成功" (true)
+            if (calibWindow.ShowDialog() == true)
+            {
+                // 如果校准成功，并且用户加载了图片
+                if (calibWindow.DutImage != null)
+                {
+                    // 就把这张图片设置为热力图的背景
+                    this.DutImageSource = calibWindow.DutImage;
+                }
+            }
         }
 
     } // 这是 MainWindow 类的结束括号
