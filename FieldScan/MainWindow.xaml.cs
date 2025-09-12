@@ -1,5 +1,6 @@
-﻿using OxyPlot.Axes;
-using OxyPlot;
+﻿using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,20 +9,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using OxyPlot.Series;
-using OxyPlot.Legends;
 using System.Threading;
 using System.IO;
 using Microsoft.Win32;
-using System.IO;
 using System.Collections.ObjectModel; // 需要添加
 using System.Xml.Serialization; // 需要添加
 
@@ -32,8 +23,18 @@ namespace FieldScan
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        // ... 其他属性
         private InstrumentSettings saSettings = new InstrumentSettings();
+
+        // --- 新增：用于绑定背景图片的属性 ---
+        private ImageSource dutImageSource;
+        public ImageSource DutImageSource
+        {
+            get { return dutImageSource; }
+            set { SetProperty(ref dutImageSource, value); }
+        }
+        // ------------------------------------
+
+        #region 探头库相关
         public ObservableCollection<Probe> Probes { get; set; } = new ObservableCollection<Probe>();
         private Probe activeProbe;
         public Probe ActiveProbe
@@ -42,136 +43,81 @@ namespace FieldScan
             set { SetProperty(ref activeProbe, value); }
         }
         private string probeLibraryFilePath = "ProbeLibrary.xml";
+        #endregion
+
+
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
-            LoadProbeLibrary(); // <-- 添加这行
+            LoadProbeLibrary();//探头库加载
             this.InitPlot();
         }
         #region 属性
+        private int scnaDelayMs = 1000;
+        public int ScnaDelayMs
+        {
+            get { return scnaDelayMs; }
+            set { SetProperty(ref scnaDelayMs, value); }
+        }
 
         private float _Cx;
-        public float Cx
-        {
-            get { return _Cx; }
-            set { SetProperty(ref _Cx, value); }
-        }
+        public float Cx { get { return _Cx; } set { SetProperty(ref _Cx, value); } }
         private float _Cy;
-        public float Cy
-        {
-            get { return _Cy; }
-            set { SetProperty(ref _Cy, value); }
-        }
+        public float Cy { get { return _Cy; } set { SetProperty(ref _Cy, value); } }
         private float _Cz;
-        public float Cz
-        {
-            get { return _Cz; }
-            set { SetProperty(ref _Cz, value); }
-        }
+        public float Cz { get { return _Cz; } set { SetProperty(ref _Cz, value); } }
         private float _Cc;
-        public float Cc
-        {
-            get { return _Cc; }
-            set { SetProperty(ref _Cc, value); }
-        }
+        public float Cc { get { return _Cc; } set { SetProperty(ref _Cc, value); } }
         private float _Tx;
-        public float Tx
-        {
-            get { return _Tx; }
-            set { SetProperty(ref _Tx, value); }
-        }
+        public float Tx { get { return _Tx; } set { SetProperty(ref _Tx, value); } }
         private float _Ty;
-        public float Ty
-        {
-            get { return _Ty; }
-            set { SetProperty(ref _Ty, value); }
-        }
+        public float Ty { get { return _Ty; } set { SetProperty(ref _Ty, value); } }
         private float _Tz = float.NaN;
-        public float Tz
-        {
-            get { return _Tz; }
-            set { SetProperty(ref _Tz, value); }
-        }
+        public float Tz { get { return _Tz; } set { SetProperty(ref _Tz, value); } }
         private float _Tc = float.NaN;
-        public float Tc
-        {
-            get { return _Tc; }
-            set { SetProperty(ref _Tc, value); }
-        }
+        public float Tc { get { return _Tc; } set { SetProperty(ref _Tc, value); } }
         private float _TstartX;
-        public float TstartX
-        {
-            get { return _TstartX; }
-            set { SetProperty(ref _TstartX, value); }
-        }
+        public float TstartX { get { return _TstartX; } set { SetProperty(ref _TstartX, value); } }
         private float _TstartY;
-        public float TstartY
-        {
-            get { return _TstartY; }
-            set { SetProperty(ref _TstartY, value); }
-        }
+        public float TstartY { get { return _TstartY; } set { SetProperty(ref _TstartY, value); } }
         private float _TstopX;
-        public float TstopX
-        {
-            get { return _TstopX; }
-            set { SetProperty(ref _TstopX, value); }
-        }
+        public float TstopX { get { return _TstopX; } set { SetProperty(ref _TstopX, value); } }
         private float _TstopY;
-        public float TstopY
-        {
-            get { return _TstopY; }
-            set { SetProperty(ref _TstopY, value); }
-        }
+        public float TstopY { get { return _TstopY; } set { SetProperty(ref _TstopY, value); } }
         private int _NumX;
-        public int NumX
-        {
-            get { return _NumX; }
-            set { SetProperty(ref _NumX, value); }
-        }
+        public int NumX { get { return _NumX; } set { SetProperty(ref _NumX, value); } }
         private int _NumY;
-        public int NumY
-        {
-            get { return _NumY; }
-            set { SetProperty(ref _NumY, value); }
-        }
-        
-        private ImageSource dutImageSource;
-        public ImageSource DutImageSource
-        {
-            get { return dutImageSource; }
-            set { SetProperty(ref dutImageSource, value); }
-        }
-
+        public int NumY { get { return _NumY; } set { SetProperty(ref _NumY, value); } }
         #endregion
+
         #region Plot
         private double[,] recPowers;
         private float[] xArray;
         private float[] yArray;
         private PlotModel model;
-        //private double[,] plotShowMatrix;
-
         private HeatMapSeries heatMap;
+
         private void InitPlot()
         {
             this.model = new PlotModel();
+            // --- 修正：设置图表背景为透明 ---
+            model.Background = OxyColors.Transparent;
+
+            // --- 修正：为颜色添加半透明效果 ---
+            byte alpha = 150; // (0-255), 150 约等于60%不透明
             OxyColor[] rainbowColors = new OxyColor[3];
-            //model.Legends.Add(new Legend { LegendPosition = LegendPosition.RightTop, LegendPlacement = LegendPlacement.Outside });
-            rainbowColors[0] = OxyColor.FromRgb(0, 0, 255); //darkRed
-            rainbowColors[1] = OxyColor.FromRgb(0, 255, 0); //red
-            rainbowColors[2] = OxyColor.FromRgb(255, 0, 0);
-            //rainbowColors[3] = OxyColor.FromRgb(0, 255, 0);
-            //rainbowColors[4] = OxyColor.FromRgb(0, 0, 255);
-            //rainbowColors[5] = OxyColor.FromRgb(153, 102, 255);
-            //rainbowColors[6] = OxyColor.FromRgb(153, 102, 255);
+            rainbowColors[0] = OxyColor.FromArgb(alpha, 0, 0, 255);
+            rainbowColors[1] = OxyColor.FromArgb(alpha, 0, 255, 0);
+            rainbowColors[2] = OxyColor.FromArgb(alpha, 255, 0, 0);
+
             var numberOfColors = 128;
-            var myRainbow = OxyPalette.Interpolate(
-                numberOfColors,
-                rainbowColors);
+            var myRainbow = OxyPalette.Interpolate(numberOfColors, rainbowColors);
             model.Axes.Add(new LinearColorAxis { Palette = myRainbow });
             plot1.Model = this.model;
             InitPlotData();
         }
+
         private void InitPlotData()
         {
             model.Series.Clear();
@@ -195,20 +141,22 @@ namespace FieldScan
             };
             model.Series.Add(heatMap);
             model.InvalidatePlot(true);
-
         }
+
         private void SetAxisAndDataSource()
         {
-            heatMap.X0 = TstartX;
-            heatMap.X1 = TstopX;
-            heatMap.Y0 = TstartY;
-            heatMap.Y1 = TstopY;
+            heatMap.X0 = Math.Min(TstartX, TstopX);
+            heatMap.X1 = Math.Max(TstartX, TstopX);
+            heatMap.Y0 = Math.Min(TstartY, TstopY);
+            heatMap.Y1 = Math.Max(TstartY, TstopY);
             heatMap.Data = recPowers;
         }
+
         private void UpdatePloatShow()
         {
             model.InvalidatePlot(true);
         }
+
         private void SetBitMapMode(bool isBitMap)
         {
             if (isBitMap)
@@ -221,6 +169,7 @@ namespace FieldScan
             }
             UpdatePloatShow();
         }
+
         int delayMs = 1000;
         private void AutoPlotShow()
         {
@@ -232,9 +181,9 @@ namespace FieldScan
             }
         }
         #endregion
+
         #region 连接断开
         private ScanClass scanClass = new ScanClass();
-        //private bool IsConnected = false;
         private bool isConnected = false;
         public bool IsConnected
         {
@@ -242,6 +191,7 @@ namespace FieldScan
             set { SetProperty(ref isConnected, value); }
         }
         private float speed = 30;
+
         private void Button_Click_Connect(object sender, RoutedEventArgs e)
         {
             if (IsConnected) return;
@@ -258,13 +208,11 @@ namespace FieldScan
                 return;
             }
 
-
             Task.Factory.StartNew(() =>
             {
                 IsConnected = true;
                 try
                 {
-                    //isConnect = true;
                     while (IsConnected)
                     {
                         var pos = scanClass.GetPos();
@@ -277,11 +225,9 @@ namespace FieldScan
                     MessageBox.Show(ex.Message);
                     IsConnected = false;
                 }
-
-            }
-            , TaskCreationOptions.LongRunning
-            );
+            }, TaskCreationOptions.LongRunning);
         }
+
         private void Button_Click_DisConnect(object sender, RoutedEventArgs e)
         {
             if (!IsNScan) return;
@@ -292,6 +238,7 @@ namespace FieldScan
             }
         }
         #endregion
+
         #region 设置位置
         private void Button_Click_SetPos(object sender, RoutedEventArgs e)
         {
@@ -312,53 +259,57 @@ namespace FieldScan
             {
                 MessageBox.Show(ex.Message);
             }
-
         }
         #endregion
 
         #region 测试
         private Sa sa = new Sa();
-        //private bool IsNScan = true;
         private bool isNScan = true;
         public bool IsNScan
         {
             get { return isNScan; }
             set { SetProperty(ref isNScan, value); }
         }
-        private double minStep = 0.1;//mm
+        private double minStep = 0.1;
+
         private void Button_Click_Scan(object sender, RoutedEventArgs e)
         {
+            // --- 修正：检查点数是否有效，防止闪退 ---
+            if (NumX < 2 || NumY < 2)
+            {
+                MessageBox.Show("请确保“点数(X)”和“点数(Y)”都大于等于2。", "扫描参数错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            // --- 检查结束 ---
+
             if (!IsConnected) { MessageBox.Show("未连接！"); return; }
             if (float.IsNaN(Tz)) Tz = (float)Math.Round(Cz, 1);
             if (float.IsNaN(Tc)) Tc = (float)Math.Round(Cc, 1);
 
-            //Pos
-            float stepX = (TstopX - TstartX) / (NumX - 1);
-            if (Math.Abs(stepX) < minStep) { MessageBox.Show("X坐标点数太多"); return; }
-            float stepY = (TstopY - TstartY) / (NumY - 1);
-            if (Math.Abs(stepY) < minStep) { MessageBox.Show("Y坐标点数太多"); return; }
+            float stepX = (NumX > 1) ? (TstopX - TstartX) / (NumX - 1) : 0;
+            if (Math.Abs(stepX) < minStep && NumX > 1) { MessageBox.Show("X坐标点数太多"); return; }
+            float stepY = (NumY > 1) ? (TstopY - TstartY) / (NumY - 1) : 0;
+            if (Math.Abs(stepY) < minStep && NumY > 1) { MessageBox.Show("Y坐标点数太多"); return; }
 
             recPowers = new double[NumX, NumY];
-            //plotShowMatrix = new double[NumX, NumY];
             for (int i = 0; i < NumX; i++)
             {
-                for (int j = 0; j < _NumY; j++)
+                for (int j = 0; j < NumY; j++)
                 {
                     recPowers[i, j] = double.NaN;
                 }
-
             }
             delayMs = NumX * NumY / 5;
 
             xArray = new float[NumX];
             yArray = new float[NumY];
-            for (int x = 0; x < NumX - 1; x++)
+            for (int x = 0; x < NumX; x++)
             {
-                xArray[x] = (float)Math.Round(TstartX + stepX * x, 1);
+                xArray[x] = TstartX + stepX * x;
             }
-            for (int y = 0; y < NumY - 1; y++)
+            for (int y = 0; y < NumY; y++)
             {
-                yArray[y] = (float)Math.Round(TstartY + stepY * y, 1);
+                yArray[y] = TstartY + stepY * y;
             }
             xArray[NumX - 1] = TstopX;
             yArray[NumY - 1] = TstopY;
@@ -371,6 +322,7 @@ namespace FieldScan
                 MessageBox.Show("目标不能到达。");
                 return;
             }
+
             IsNScan = false;
             SetAxisAndDataSource();
             Task.Factory.StartNew(AutoPlotShow, TaskCreationOptions.LongRunning);
@@ -500,6 +452,7 @@ namespace FieldScan
                 IsNScan = true;
             }
         }
+        //ScanData()结束
 
         private void Button_Click_ScanStop(object sender, RoutedEventArgs e)
         {
@@ -624,27 +577,17 @@ namespace FieldScan
 
 
         #region 界面相关
-
         public event PropertyChangedEventHandler PropertyChanged;
-        public void RaisePropertyChanged(string propertyName)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
         protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
-
             storage = value;
-            RaisePropertyChanged(propertyName);
-
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             return true;
         }
-
         #endregion
 
+        #region 按钮点击事件
         private void Button_Click_Show(object sender, RoutedEventArgs e)
         {
 
@@ -743,13 +686,7 @@ namespace FieldScan
             }
             catch (Exception ex) { MessageBox.Show("保存探头库文件失败: " + ex.Message); }
         }
-        private void WriteCorrectedDataFile(string filePath, string s)
-        {
-            StreamWriter sw = new StreamWriter(filePath, true);
-            sw.WriteLine(s);
-            sw.Close();
-            sw.Dispose();
-        }
+
         private void CameraCalibrate_Click(object sender, RoutedEventArgs e)
         {
             if (!IsConnected)
@@ -760,10 +697,10 @@ namespace FieldScan
 
             CalibrationWindow calibWindow = new CalibrationWindow(this.scanClass, this);
 
-            // 使用 ShowDialog() 来等待校准窗口关闭
-            // 并检查它的返回结果是否为 "成功" (true)
+            // 如果用户点击了“确认”
             if (calibWindow.ShowDialog() == true)
             {
+                //如果上传了 DUT 图片
                 if (calibWindow.DutImage != null)
                 {
                     // --- 修正：将图片赋值给主窗口的属性 ---
@@ -771,6 +708,14 @@ namespace FieldScan
                 }
             }
         }
+        #endregion
 
+        private void WriteCorrectedDataFile(string filePath, string s)
+        {
+            StreamWriter sw = new StreamWriter(filePath, true);
+            sw.WriteLine(s);
+            sw.Close();
+            sw.Dispose();
+        }
     } // 这是 MainWindow 类的结束括号
 }
