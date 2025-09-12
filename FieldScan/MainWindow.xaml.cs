@@ -764,10 +764,9 @@ namespace FieldScan
             // 并检查它的返回结果是否为 "成功" (true)
             if (calibWindow.ShowDialog() == true)
             {
-                // 如果校准成功，并且用户加载了图片
                 if (calibWindow.DutImage != null)
                 {
-                    // 就把这张图片设置为热力图的背景
+                    // --- 修正：将图片赋值给主窗口的属性 ---
                     this.DutImageSource = calibWindow.DutImage;
                 }
             }
